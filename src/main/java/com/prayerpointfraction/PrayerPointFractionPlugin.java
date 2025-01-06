@@ -5,11 +5,13 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.ItemID;
+import net.runelite.api.Skill;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
+import net.runelite.client.game.SkillIconManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
@@ -33,9 +35,15 @@ public class PrayerPointFractionPlugin extends Plugin
 	private InfoBoxManager infoBoxManager;
 
 	@Inject
+	private SkillIconManager skillIconManager;
+
+	@Inject
 	private PrayerPointFractionConfig config;
 
 	private PrayerPointFractionCounter counter;
+
+
+	private int currentTick;
 
 	@Override
 	protected void startUp() throws Exception
@@ -56,23 +64,33 @@ public class PrayerPointFractionPlugin extends Plugin
 		{
 			//client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Tick is " + config.showCurrentTick(), null);
 			//addCounter();
+			currentTick = config.showCurrentTick();
 		}
 	}
 
 	@Subscribe
 	public void onGameTick(GameTick tick)
 	{
+		//TODO: Change to prayer point
+		//currentTick goes from 1 to config.showCurrentTick()
+		if (currentTick <= 1)
+		{
+			currentTick = config.showCurrentTick();
+		}
+		else
+		{
+			currentTick--;
+		}
 		removeCounter();
-		addCounter();
+		addCounter(currentTick);
 	}
 
 
-	private void addCounter()
+	private void addCounter(int value)
 	{
-		//TODO: Find prayer icon image
-		BufferedImage image = itemManager.getImage(ItemID.PRAYER_XP);
+		BufferedImage image = skillIconManager.getSkillImage(Skill.PRAYER);
 		//TODO: Remove fixed variable
-		counter = new PrayerPointFractionCounter(image, this, config.showCurrentTick());
+		counter = new PrayerPointFractionCounter(image, this, value);
 
 		infoBoxManager.addInfoBox(counter);
 	}
