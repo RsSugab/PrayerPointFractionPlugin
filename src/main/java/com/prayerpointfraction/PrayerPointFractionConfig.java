@@ -4,16 +4,16 @@ import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
 
-@ConfigGroup("example")
+@ConfigGroup("prayerPointFraction")
 public interface PrayerPointFractionConfig extends Config
 {
 	@ConfigItem(
-		keyName = "greeting",
-		name = "Welcome Greeting",
-		description = "The message to show to the user when they login"
+		keyName = "currentTick",
+		name = "Current tick",
+		description = "Test variable"
 	)
-	default String greeting()
+	default int showCurrentTick()
 	{
-		return "Hello";
+		return 10;
 	}
 }
