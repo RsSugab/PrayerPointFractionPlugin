@@ -95,6 +95,8 @@ public class PrayerPointFractionPlugin extends Plugin
 	//TODO: Generalize for all prayers
 	private boolean thickSkinFlicked;
 
+	private boolean prayerFlickedFlag[] = new boolean[PrayerType.values().length];
+
 	@Override
 	protected void startUp() throws Exception
 	{
@@ -140,10 +142,7 @@ public class PrayerPointFractionPlugin extends Plugin
 //		prayerDrainCounter--;
 
 		//TODO: Generalize for all prayers
-		if (!thickSkinFlicked)
-		{
-			prayerDrainCounter+=getDrainEffect(client);
-		}
+		prayerDrainCounter += getDrainEffect(client);
 		thickSkinFlicked = false;
 
 		int prayerDrainThreshold = 60 + prayerBonus*2;
@@ -154,17 +153,19 @@ public class PrayerPointFractionPlugin extends Plugin
 		}
 	}
 
-	//Taken from Prayer plugin
-	private static int getDrainEffect(Client client)
+	//Inspired from Prayer plugin
+	private int getDrainEffect(Client client)
 	{
 		int drainEffect = 0;
 
 		for (PrayerType prayerType : PrayerType.values())
 		{
-			if (client.isPrayerActive(prayerType.prayer))
+			if (client.isPrayerActive(prayerType.prayer) && !prayerFlickedFlag[prayerType.ordinal()])
 			{
 				drainEffect += prayerType.drainEffect;
 			}
+			//TODO: Get shouldnt affect values
+			prayerFlickedFlag[prayerType.ordinal()] = false;
 		}
 
 		return drainEffect;
@@ -216,13 +217,21 @@ public class PrayerPointFractionPlugin extends Plugin
 	@Subscribe
 	public void onVarbitChanged(VarbitChanged event)
 	{
-		//TODO: Make it work for all prayers
-		if (event.getVarbitId() == Varbits.PRAYER_THICK_SKIN)
+//		if (event.getVarbitId() == PrayerType.THICK_SKIN.prayer.getVarbit())
+//		{
+//			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Flicked this tick", null);
+//			thickSkinFlicked = true;
+//		}
+		for (PrayerType prayerType : PrayerType.values())
 		{
-			//TODO: Keep note if prayer was flicked
-			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Flicked this tick", null);
-			thickSkinFlicked = true;
+			if (event.getVarbitId() == prayerType.getPrayer().getVarbit())
+			{
+				//TODO: Keep note if prayer was flicked
+				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Flicked this tick", null);
+				prayerFlickedFlag[prayerType.ordinal()] = true;
+			}
 		}
+
 	}
 
 
