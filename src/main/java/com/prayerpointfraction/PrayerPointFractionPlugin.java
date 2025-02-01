@@ -8,6 +8,7 @@ import net.runelite.api.*;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ItemContainerChanged;
+import net.runelite.api.events.VarbitChanged;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
@@ -91,6 +92,8 @@ public class PrayerPointFractionPlugin extends Plugin
 
 	private int prayerBonus;
 	private int prayerDrainCounter;
+	//TODO: Generalize for all prayers
+	private boolean thickSkinFlicked;
 
 	@Override
 	protected void startUp() throws Exception
@@ -136,8 +139,12 @@ public class PrayerPointFractionPlugin extends Plugin
 //
 //		prayerDrainCounter--;
 
-		//TODO
-		prayerDrainCounter+=getDrainEffect(client);
+		//TODO: Generalize for all prayers
+		if (!thickSkinFlicked)
+		{
+			prayerDrainCounter+=getDrainEffect(client);
+		}
+		thickSkinFlicked = false;
 
 		int prayerDrainThreshold = 60 + prayerBonus*2;
 		if (prayerDrainCounter >= prayerDrainThreshold)
@@ -203,6 +210,18 @@ public class PrayerPointFractionPlugin extends Plugin
 		if (id == InventoryID.EQUIPMENT.getId())
 		{
 			prayerBonus = totalPrayerBonus(event.getItemContainer().getItems());
+		}
+	}
+
+	@Subscribe
+	public void onVarbitChanged(VarbitChanged event)
+	{
+		//TODO: Make it work for all prayers
+		if (event.getVarbitId() == Varbits.PRAYER_THICK_SKIN)
+		{
+			//TODO: Keep note if prayer was flicked
+			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Flicked this tick", null);
+			thickSkinFlicked = true;
 		}
 	}
 
