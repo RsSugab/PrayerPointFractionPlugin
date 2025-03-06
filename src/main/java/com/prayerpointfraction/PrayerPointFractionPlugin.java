@@ -47,6 +47,8 @@ public class PrayerPointFractionPlugin extends Plugin
 	private PrayerPointFractionCounter thresholdCounter;
 	private PrayerPointFractionCounter ticksCounter;
 
+	private int lastPrayerDrainEffect;
+
 	//TODO: Find how to include this
 	//@Getter
 	//private final PrayerType prayerType;
@@ -99,6 +101,7 @@ public class PrayerPointFractionPlugin extends Plugin
 	private int prayerTicksCounter;
 	//TODO: Generalize for all prayers
 	private boolean thickSkinFlicked;
+	private boolean flagPrayerGearChanged;
 
 	private boolean prayerFlickedFlag[] = new boolean[PrayerType.values().length];
 
@@ -168,10 +171,15 @@ public class PrayerPointFractionPlugin extends Plugin
 	private void updateTicksCounter()
 	{
 		int ticksPrayerActive = getAmountTicksPrayerActive(client);
+		// Keep number of ticks based on the last active prayers
 		if (ticksPrayerActive > 0)
 		{
 			prayerTicksCounter = ticksPrayerActive;
+		} else if (flagPrayerGearChanged)
+		{
+			prayerTicksCounter = calculateTicksPrayerActive(lastPrayerDrainEffect);
 		}
+		flagPrayerGearChanged = false;
 	}
 
 	//Inspired from Prayer plugin
@@ -195,7 +203,7 @@ public class PrayerPointFractionPlugin extends Plugin
 	//Inspired from Prayer plugin
 	private int getAmountTicksPrayerActive(Client client)
 	{
-		double drainEffectNoFlick = 0;
+		int drainEffectNoFlick = 0;
 
 		for (PrayerType prayerType : PrayerType.values())
 		{
@@ -205,15 +213,21 @@ public class PrayerPointFractionPlugin extends Plugin
 			}
 		}
 
-		int prayerDrainThreshold = 60 + prayerBonus*2;
 		int ticksPrayerActive = 0;
 
 		if (drainEffectNoFlick > 0)
 		{
-			ticksPrayerActive = (int)(floor((prayerDrainThreshold-prayerDrainCounter)/drainEffectNoFlick)) + 1;
+			ticksPrayerActive = calculateTicksPrayerActive(drainEffectNoFlick);
+			lastPrayerDrainEffect = drainEffectNoFlick;
 		}
 
 		return ticksPrayerActive;
+	}
+
+	private int calculateTicksPrayerActive(int drainEffect)
+	{
+		int prayerDrainThreshold = 60 + prayerBonus*2;
+		return ((prayerDrainThreshold-prayerDrainCounter)/drainEffect) + 1;
 	}
 
 	private void addPrayerDrainInfobox(int value)
@@ -275,6 +289,7 @@ public class PrayerPointFractionPlugin extends Plugin
 		{
 			prayerBonus = totalPrayerBonus(event.getItemContainer().getItems());
 		}
+		flagPrayerGearChanged = true;
 	}
 
 	@Subscribe
