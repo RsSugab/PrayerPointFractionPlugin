@@ -21,6 +21,8 @@ import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
 import javax.inject.Inject;
 import java.awt.image.BufferedImage;
 
+import static java.lang.Math.floor;
+
 @Slf4j
 @PluginDescriptor(
 	name = "Prayer Point Fraction"
@@ -42,7 +44,8 @@ public class PrayerPointFractionPlugin extends Plugin
 	@Inject
 	private PrayerPointFractionConfig config;
 
-	private PrayerPointFractionCounter counter;
+	private PrayerPointFractionCounter thresholdCounter;
+	private PrayerPointFractionCounter ticksCounter;
 
 	//TODO: Find how to include this
 	//@Getter
@@ -51,6 +54,7 @@ public class PrayerPointFractionPlugin extends Plugin
 	@Getter
 	enum PrayerType
 	{
+		//TODO: Add new prayers
 		THICK_SKIN("Thick Skin", Prayer.THICK_SKIN, "+5% Defence", SpriteID.PRAYER_THICK_SKIN, false, 1),
 		BURST_OF_STRENGTH("Burst of Strength", Prayer.BURST_OF_STRENGTH, "+5% Strength", SpriteID.PRAYER_BURST_OF_STRENGTH, false, 1),
 		CLARITY_OF_THOUGHT("Clarity of Thought", Prayer.CLARITY_OF_THOUGHT, "+5% Attack", SpriteID.PRAYER_CLARITY_OF_THOUGHT, false, 1),
@@ -92,6 +96,7 @@ public class PrayerPointFractionPlugin extends Plugin
 
 	private int prayerBonus;
 	private int prayerDrainCounter;
+	private int prayerTicksCounter;
 	//TODO: Generalize for all prayers
 	private boolean thickSkinFlicked;
 
@@ -128,6 +133,10 @@ public class PrayerPointFractionPlugin extends Plugin
 		updateDrainCounter();
 		removeDrainInfobox();
 		addPrayerDrainInfobox(prayerDrainCounter);
+
+		updateTicksCounter();
+		removeTicksInfobox();
+		addPrayerTicksInfobox(prayerTicksCounter);
 	}
 
 	private void updateDrainCounter()
@@ -143,13 +152,25 @@ public class PrayerPointFractionPlugin extends Plugin
 
 		//TODO: Generalize for all prayers
 		prayerDrainCounter += getDrainEffect(client);
-		thickSkinFlicked = false;
 
 		int prayerDrainThreshold = 60 + prayerBonus*2;
-		if (prayerDrainCounter >= prayerDrainThreshold)
+		if (prayerDrainCounter > prayerDrainThreshold)
 		{
-			//TODO: Confirm if the counter goes to 0 or is just reduced by prayerDrainThreshold
 			prayerDrainCounter-=prayerDrainThreshold;
+		}
+		// TODO: Remove debug
+		if (config.setCurrentTick() == true)
+		{
+			prayerDrainCounter = config.showCurrentTick();
+		}
+	}
+
+	private void updateTicksCounter()
+	{
+		int ticksPrayerActive = getAmountTicksPrayerActive(client);
+		if (ticksPrayerActive > 0)
+		{
+			prayerTicksCounter = ticksPrayerActive;
 		}
 	}
 
@@ -164,29 +185,71 @@ public class PrayerPointFractionPlugin extends Plugin
 			{
 				drainEffect += prayerType.drainEffect;
 			}
-			//TODO: Get shouldnt affect values
+			//TODO: "Get" shouldnt affect values
 			prayerFlickedFlag[prayerType.ordinal()] = false;
 		}
 
 		return drainEffect;
 	}
 
+	//Inspired from Prayer plugin
+	private int getAmountTicksPrayerActive(Client client)
+	{
+		double drainEffectNoFlick = 0;
+
+		for (PrayerType prayerType : PrayerType.values())
+		{
+			if (client.isPrayerActive(prayerType.prayer))
+			{
+				drainEffectNoFlick += prayerType.drainEffect;
+			}
+		}
+
+		int prayerDrainThreshold = 60 + prayerBonus*2;
+		int ticksPrayerActive = 0;
+
+		if (drainEffectNoFlick > 0)
+		{
+			ticksPrayerActive = (int)(floor((prayerDrainThreshold-prayerDrainCounter)/drainEffectNoFlick)) + 1;
+		}
+
+		return ticksPrayerActive;
+	}
+
 	private void addPrayerDrainInfobox(int value)
 	{
 		BufferedImage image = skillIconManager.getSkillImage(Skill.PRAYER);
-		counter = new PrayerPointFractionCounter(image, this, value, 60 + prayerBonus*2);
-		infoBoxManager.addInfoBox(counter);
+		thresholdCounter = new PrayerPointFractionCounter(image, this, value, 60 + prayerBonus*2);
+		infoBoxManager.addInfoBox(thresholdCounter);
+	}
+
+	private void addPrayerTicksInfobox(int value)
+	{
+		BufferedImage image = skillIconManager.getSkillImage(Skill.PRAYER);
+		ticksCounter = new PrayerPointFractionCounter(image, this, value, 60 + prayerBonus*2);
+		infoBoxManager.addInfoBox(ticksCounter);
 	}
 
 	private void removeDrainInfobox()
 	{
-		if (counter == null)
+		if (thresholdCounter == null)
 		{
 			return;
 		}
 
-		infoBoxManager.removeInfoBox(counter);
-		counter = null;
+		infoBoxManager.removeInfoBox(thresholdCounter);
+		thresholdCounter = null;
+	}
+
+	private void removeTicksInfobox()
+	{
+		if (ticksCounter == null)
+		{
+			return;
+		}
+
+		infoBoxManager.removeInfoBox(ticksCounter);
+		ticksCounter = null;
 	}
 
 	//Taken from the Prayer plugin

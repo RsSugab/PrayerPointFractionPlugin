@@ -16,4 +16,15 @@ public interface PrayerPointFractionConfig extends Config
 	{
 		return 10;
 	}
+
+	@ConfigItem(
+		keyName = "setCurrentTick",
+		name = "Set current tick",
+		description = "Set current tick to value above."
+	)
+	default boolean setCurrentTick()
+	{
+		return false;
+	}
+
 }
