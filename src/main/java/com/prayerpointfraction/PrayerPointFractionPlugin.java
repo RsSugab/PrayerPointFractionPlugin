@@ -60,7 +60,7 @@ public class PrayerPointFractionPlugin extends Plugin
 	@Getter
 	enum PrayerType
 	{
-		//TODO: Add new prayers
+		//TODO: Add new prayers and cleanup
 		THICK_SKIN("Thick Skin", Prayer.THICK_SKIN, "+5% Defence", SpriteID.PRAYER_THICK_SKIN, false, 1),
 		BURST_OF_STRENGTH("Burst of Strength", Prayer.BURST_OF_STRENGTH, "+5% Strength", SpriteID.PRAYER_BURST_OF_STRENGTH, false, 1),
 		CLARITY_OF_THOUGHT("Clarity of Thought", Prayer.CLARITY_OF_THOUGHT, "+5% Attack", SpriteID.PRAYER_CLARITY_OF_THOUGHT, false, 1),
@@ -103,8 +103,7 @@ public class PrayerPointFractionPlugin extends Plugin
 	private int prayerBonus;
 	private int prayerDrainCounter;
 	private int prayerTicksCounter;
-	//TODO: Generalize for all prayers
-	private boolean thickSkinFlicked;
+
 	private boolean flagRecalculateTicksLeft;
 
 	private boolean prayerFlickedFlag[] = new boolean[PrayerType.values().length];
@@ -113,6 +112,7 @@ public class PrayerPointFractionPlugin extends Plugin
 	protected void startUp() throws Exception
 	{
 		//log.info("Example started!");
+		prayerDrainCounter = 0;
 	}
 
 	@Override
@@ -124,14 +124,14 @@ public class PrayerPointFractionPlugin extends Plugin
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged gameStateChanged)
 	{
-		if (gameStateChanged.getGameState() == GameState.LOGGED_IN)
-		{
-			//client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Tick is " + config.showCurrentTick(), null);
-			//addCounter();
-			//TODO: Could find a way to store between logins
-			prayerDrainCounter = 0;
-			//prayerDrainCounter = config.showCurrentTick();
-		}
+//		if (gameStateChanged.getGameState() == GameState.LOGGED_IN)
+//		{
+//			//client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Tick is " + config.showCurrentTick(), null);
+//			//addCounter();
+//			//TODO: Could find a way to store between logins
+//			prayerDrainCounter = 0;
+//			//prayerDrainCounter = config.showCurrentTick();
+//		}
 	}
 
 	@Subscribe
@@ -285,16 +285,9 @@ public class PrayerPointFractionPlugin extends Plugin
 		final Actor actor = animationChanged.getActor();
 		final int anim = actor.getAnimation();
 
-		//TODO: Do all
-
-		// POH pool
-		if (anim == 7305)
-		{
-			prayerDrainCounter = 0;
-			flagRecalculateTicksLeft = true;
-		}
-		// Altar
-		if (anim == 645)
+		//TODO: Investigate if other actions (linked to animations) reset prayerDrainCounter
+		if (anim == 7305 //POH pool
+				|| anim == 645) //Altar
 		{
 			prayerDrainCounter = 0;
 			flagRecalculateTicksLeft = true;
