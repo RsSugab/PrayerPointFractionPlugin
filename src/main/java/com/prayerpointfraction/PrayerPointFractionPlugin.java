@@ -231,14 +231,14 @@ public class PrayerPointFractionPlugin extends Plugin
 	private void addPrayerDrainInfobox(int value)
 	{
 		BufferedImage image = skillIconManager.getSkillImage(Skill.PRAYER);
-		thresholdCounter = new PrayerPointFractionCounter(image, this, value, 60 + prayerBonus*2);
+		thresholdCounter = new PrayerPointFractionCounter(image, this, value, 60 + prayerBonus*2, prayerDrainCounter);
 		infoBoxManager.addInfoBox(thresholdCounter);
 	}
 
 	private void addPrayerTicksInfobox(int value)
 	{
 		BufferedImage image = skillIconManager.getSkillImage(Skill.PRAYER);
-		ticksCounter = new PrayerPointFractionCounter(image, this, value, 60 + prayerBonus*2);
+		ticksCounter = new PrayerPointFractionCounter(image, this, value, 60 + prayerBonus*2, prayerDrainCounter);
 		infoBoxManager.addInfoBox(ticksCounter);
 	}
 

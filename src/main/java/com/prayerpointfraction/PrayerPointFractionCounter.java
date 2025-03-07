@@ -32,16 +32,19 @@ import java.awt.image.BufferedImage;
 class PrayerPointFractionCounter extends Counter
 {
     int prayerDrainThreshold;
+    int prayerDrainCounter;
 
-    PrayerPointFractionCounter(BufferedImage img, Plugin plugin, int amount, int prayerDrainThreshold)
+    PrayerPointFractionCounter(BufferedImage img, Plugin plugin, int amount, int prayerDrainThreshold, int prayerDrainCounter)
     {
         super(img, plugin, amount);
         this.prayerDrainThreshold = prayerDrainThreshold;
+        this.prayerDrainCounter = prayerDrainCounter;
     }
 
     @Override
     public String getTooltip()
     {
-        return "Prayer threshold: " + prayerDrainThreshold;
+        return "Prayer threshold: " + prayerDrainThreshold + "</br>"
+                + "Prayer Drain Counter: " + prayerDrainCounter;
     }
 }
