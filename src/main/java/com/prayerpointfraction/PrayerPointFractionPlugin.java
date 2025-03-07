@@ -1,16 +1,19 @@
 package com.prayerpointfraction;
 
+//import com.google.common.eventbus.Subscribe;
 import com.google.inject.Provides;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
+import net.runelite.api.events.AnimationChanged;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.VarbitChanged;
-import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.config.ConfigManager;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.ItemStats;
 import net.runelite.client.game.SkillIconManager;
@@ -20,8 +23,6 @@ import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
 
 import javax.inject.Inject;
 import java.awt.image.BufferedImage;
-
-import static java.lang.Math.floor;
 
 @Slf4j
 @PluginDescriptor(
@@ -48,6 +49,9 @@ public class PrayerPointFractionPlugin extends Plugin
 	private PrayerPointFractionCounter ticksCounter;
 
 	private int lastPrayerDrainEffect;
+
+	//TODO: Remove debug
+	static final boolean debug = false;
 
 	//TODO: Find how to include this
 	//@Getter
@@ -101,7 +105,7 @@ public class PrayerPointFractionPlugin extends Plugin
 	private int prayerTicksCounter;
 	//TODO: Generalize for all prayers
 	private boolean thickSkinFlicked;
-	private boolean flagPrayerGearChanged;
+	private boolean flagRecalculateTicksLeft;
 
 	private boolean prayerFlickedFlag[] = new boolean[PrayerType.values().length];
 
@@ -134,8 +138,11 @@ public class PrayerPointFractionPlugin extends Plugin
 	public void onGameTick(GameTick tick)
 	{
 		updateDrainCounter();
-		removeDrainInfobox();
-		addPrayerDrainInfobox(prayerDrainCounter);
+		if (debug)
+		{
+			removeDrainInfobox();
+			addPrayerDrainInfobox(prayerDrainCounter);
+		}
 
 		updateTicksCounter();
 		removeTicksInfobox();
@@ -144,16 +151,6 @@ public class PrayerPointFractionPlugin extends Plugin
 
 	private void updateDrainCounter()
 	{
-//		//currentTick goes from 1 to config.showCurrentTick()
-//		if (prayerDrainCounter <= 1)
-//		{
-//			prayerDrainCounter = config.showCurrentTick();
-//			return;
-//		}
-//
-//		prayerDrainCounter--;
-
-		//TODO: Generalize for all prayers
 		prayerDrainCounter += getDrainEffect(client);
 
 		int prayerDrainThreshold = 60 + prayerBonus*2;
@@ -161,10 +158,11 @@ public class PrayerPointFractionPlugin extends Plugin
 		{
 			prayerDrainCounter-=prayerDrainThreshold;
 		}
-		// TODO: Remove debug
-		if (config.setCurrentTick() == true)
+		if (debug)
 		{
-			prayerDrainCounter = config.showCurrentTick();
+			if (config.setCurrentTick()) {
+				prayerDrainCounter = config.showCurrentTick();
+			}
 		}
 	}
 
@@ -175,11 +173,11 @@ public class PrayerPointFractionPlugin extends Plugin
 		if (ticksPrayerActive > 0)
 		{
 			prayerTicksCounter = ticksPrayerActive;
-		} else if (flagPrayerGearChanged)
+		} else if (flagRecalculateTicksLeft)
 		{
 			prayerTicksCounter = calculateTicksPrayerActive(lastPrayerDrainEffect);
 		}
-		flagPrayerGearChanged = false;
+		flagRecalculateTicksLeft = false;
 	}
 
 	//Inspired from Prayer plugin
@@ -282,6 +280,28 @@ public class PrayerPointFractionPlugin extends Plugin
 	}
 
 	@Subscribe
+	public void onAnimationChanged(AnimationChanged animationChanged)
+	{
+		final Actor actor = animationChanged.getActor();
+		final int anim = actor.getAnimation();
+
+		//TODO: Do all
+
+		// POH pool
+		if (anim == 7305)
+		{
+			prayerDrainCounter = 0;
+			flagRecalculateTicksLeft = true;
+		}
+		// Altar
+		if (anim == 645)
+		{
+			prayerDrainCounter = 0;
+			flagRecalculateTicksLeft = true;
+		}
+	}
+
+	@Subscribe
 	public void onItemContainerChanged(final ItemContainerChanged event)
 	{
 		final int id = event.getContainerId();
@@ -289,17 +309,12 @@ public class PrayerPointFractionPlugin extends Plugin
 		{
 			prayerBonus = totalPrayerBonus(event.getItemContainer().getItems());
 		}
-		flagPrayerGearChanged = true;
+		flagRecalculateTicksLeft = true;
 	}
 
 	@Subscribe
 	public void onVarbitChanged(VarbitChanged event)
 	{
-//		if (event.getVarbitId() == PrayerType.THICK_SKIN.prayer.getVarbit())
-//		{
-//			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Flicked this tick", null);
-//			thickSkinFlicked = true;
-//		}
 		for (PrayerType prayerType : PrayerType.values())
 		{
 			if (event.getVarbitId() == prayerType.getPrayer().getVarbit())
