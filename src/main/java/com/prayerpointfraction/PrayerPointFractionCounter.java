@@ -27,18 +27,21 @@ package com.prayerpointfraction;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.ui.overlay.infobox.Counter;
 
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 
 class PrayerPointFractionCounter extends Counter
 {
     int prayerDrainThreshold;
     int prayerDrainCounter;
+    boolean flagMissedPrayerFlick;
 
-    PrayerPointFractionCounter(BufferedImage img, Plugin plugin, int amount, int prayerDrainThreshold, int prayerDrainCounter)
+    PrayerPointFractionCounter(BufferedImage img, Plugin plugin, int amount, int prayerDrainThreshold, int prayerDrainCounter, boolean flagMissedPrayerFlick)
     {
         super(img, plugin, amount);
         this.prayerDrainThreshold = prayerDrainThreshold;
         this.prayerDrainCounter = prayerDrainCounter;
+        this.flagMissedPrayerFlick = flagMissedPrayerFlick;
     }
 
     @Override
@@ -46,5 +49,16 @@ class PrayerPointFractionCounter extends Counter
     {
         return "Prayer threshold: " + prayerDrainThreshold + "</br>"
                 + "Prayer Drain Counter: " + prayerDrainCounter;
+    }
+
+    @Override
+    public Color getTextColor()
+    {
+        if (flagMissedPrayerFlick)
+        {
+            return Color.RED.brighter();
+        }
+
+        return Color.WHITE;
     }
 }
