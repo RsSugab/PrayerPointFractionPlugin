@@ -61,4 +61,9 @@ class PrayerPointFractionCounter extends Counter
 
         return Color.WHITE;
     }
+
+    public void setFlag(boolean flag)
+    {
+        this.flagMissedPrayerFlick = flag;
+    }
 }

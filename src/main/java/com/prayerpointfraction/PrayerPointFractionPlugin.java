@@ -49,9 +49,6 @@ public class PrayerPointFractionPlugin extends Plugin
 	//TODO: Remove debug
 	static final boolean debug = false;
 
-	//TODO: Find how to include this
-	//@Getter
-	//private final PrayerType prayerType;
 	@AllArgsConstructor
 	@Getter
 	enum PrayerType
@@ -142,8 +139,15 @@ public class PrayerPointFractionPlugin extends Plugin
 		}
 
 		updateTicksCounter();
-		removeTicksInfobox();
-		addPrayerTicksInfobox(prayerTicksCounter);
+		if (ticksCounter == null)
+		{
+			addPrayerTicksInfobox(prayerTicksCounter);
+		}
+		else
+		{
+			ticksCounter.setCount(prayerTicksCounter);
+			ticksCounter.setFlag(flagMissedPrayerFlick);
+		}
 		flagMissedPrayerFlick = false;
 	}
 
