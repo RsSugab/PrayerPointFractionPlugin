@@ -6,11 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
-import net.runelite.api.events.AnimationChanged;
-import net.runelite.api.events.GameStateChanged;
-import net.runelite.api.events.GameTick;
-import net.runelite.api.events.ItemContainerChanged;
-import net.runelite.api.events.VarbitChanged;
+import net.runelite.api.events.*;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.config.ConfigManager;
@@ -310,6 +306,27 @@ public class PrayerPointFractionPlugin extends Plugin
 			prayerBonus = totalPrayerBonus(event.getItemContainer().getItems());
 		}
 		flagRecalculateTicksLeft = true;
+	}
+
+	@Subscribe
+	public void onMenuOptionClicked(MenuOptionClicked event)
+	{
+		if(event.isItemOp())
+		{
+			// Falador shield 3 and 4 resets prayer drain counter
+			if(event.getItemId() == 13119 || event.getItemId() == 13120)
+			{
+				if (event.getMenuOption().equals("Recharge-prayer"))
+				{
+					// Falador shield only restores prayer if you're missing prayer points
+					if (client.getBoostedSkillLevel(Skill.PRAYER) < client.getRealSkillLevel(Skill.PRAYER))
+					{
+						prayerDrainCounter = 0;
+						flagRecalculateTicksLeft = true;
+					}
+				}
+			}
+		}
 	}
 
 	@Subscribe
