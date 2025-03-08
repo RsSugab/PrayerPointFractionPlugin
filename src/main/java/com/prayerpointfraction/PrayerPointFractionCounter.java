@@ -35,6 +35,7 @@ class PrayerPointFractionCounter extends Counter
     int prayerDrainThreshold;
     int prayerDrainCounter;
     boolean flagMissedPrayerFlick;
+    boolean flagPrayerDrainCounterNotInitialized;
 
     PrayerPointFractionCounter(BufferedImage img, Plugin plugin, int amount, int prayerDrainThreshold, int prayerDrainCounter, boolean flagMissedPrayerFlick)
     {
@@ -42,13 +43,30 @@ class PrayerPointFractionCounter extends Counter
         this.prayerDrainThreshold = prayerDrainThreshold;
         this.prayerDrainCounter = prayerDrainCounter;
         this.flagMissedPrayerFlick = flagMissedPrayerFlick;
+        this.flagPrayerDrainCounterNotInitialized = true;
     }
 
     @Override
     public String getTooltip()
     {
+        if (flagPrayerDrainCounterNotInitialized)
+        {
+            return "Pray to an altar, use a POH pool or use a Falador Shield to initialize";
+        }
+
         return "Prayer threshold: " + prayerDrainThreshold + "</br>"
                 + "Prayer Drain Counter: " + prayerDrainCounter;
+    }
+
+    @Override
+    public String getText()
+    {
+        if (flagPrayerDrainCounterNotInitialized)
+        {
+            return "?";
+        }
+
+        return super.getText();
     }
 
     @Override
@@ -65,5 +83,10 @@ class PrayerPointFractionCounter extends Counter
     public void setFlag(boolean flag)
     {
         this.flagMissedPrayerFlick = flag;
+    }
+
+    public void initialize()
+    {
+        this.flagPrayerDrainCounterNotInitialized = false;
     }
 }

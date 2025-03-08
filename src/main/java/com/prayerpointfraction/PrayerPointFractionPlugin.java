@@ -7,7 +7,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
-import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.game.ItemManager;
@@ -107,6 +106,8 @@ public class PrayerPointFractionPlugin extends Plugin
 	{
 		//log.info("Example started!");
 		prayerDrainCounter = 0;
+		flagRecalculateTicksLeft = true;
+		addPrayerTicksInfobox(0);
 	}
 
 	@Override
@@ -183,6 +184,10 @@ public class PrayerPointFractionPlugin extends Plugin
 		} else if (flagRecalculateTicksLeft)
 		{
 			prayerTicksCounter = calculateTicksPrayerActive(lastPrayerDrainEffect);
+		}
+		if (flagRecalculateTicksLeft && lastPrayerDrainEffect == 0)
+		{
+			prayerTicksCounter = -1;
 		}
 		flagRecalculateTicksLeft = false;
 	}
@@ -298,6 +303,7 @@ public class PrayerPointFractionPlugin extends Plugin
 		{
 			prayerDrainCounter = 0;
 			flagRecalculateTicksLeft = true;
+			ticksCounter.initialize();
 		}
 	}
 
@@ -327,6 +333,7 @@ public class PrayerPointFractionPlugin extends Plugin
 					{
 						prayerDrainCounter = 0;
 						flagRecalculateTicksLeft = true;
+						ticksCounter.initialize();
 					}
 				}
 			}
