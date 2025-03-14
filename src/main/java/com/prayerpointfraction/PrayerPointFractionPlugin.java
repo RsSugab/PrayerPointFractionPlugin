@@ -172,7 +172,7 @@ public class PrayerPointFractionPlugin extends Plugin
 		}
 
 		int prayerDrainThreshold = 60 + prayerBonus*2;
-		if (prayerDrainCounter > prayerDrainThreshold)
+		if (prayerDrainCounter >= prayerDrainThreshold)
 		{
 			prayerDrainCounter-=prayerDrainThreshold;
 		}
@@ -254,7 +254,7 @@ public class PrayerPointFractionPlugin extends Plugin
 	private int calculateTicksPrayerActive(int drainEffect)
 	{
 		int prayerDrainThreshold = 60 + prayerBonus*2;
-		return ((prayerDrainThreshold-prayerDrainCounter)/drainEffect) + 1;
+		return ((prayerDrainThreshold-prayerDrainCounter)/drainEffect) + (((prayerDrainThreshold-prayerDrainCounter) % drainEffect == 0)? 0 : 1);
 	}
 
 	private void addPrayerDrainInfobox(int value)
