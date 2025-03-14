@@ -24,6 +24,7 @@
  */
 package com.prayerpointfraction;
 
+import lombok.Setter;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.ui.overlay.infobox.Counter;
 
@@ -34,16 +35,18 @@ class PrayerPointFractionCounter extends Counter
 {
     int prayerDrainThreshold;
     int prayerDrainCounter;
-    boolean flagMissedPrayerFlick;
     boolean flagPrayerDrainCounterNotInitialized;
 
-    PrayerPointFractionCounter(BufferedImage img, Plugin plugin, int amount, int prayerDrainThreshold, int prayerDrainCounter, boolean flagMissedPrayerFlick)
+    @Setter
+    PrayerPointFractionPlugin.TickFlickStatus tickFlickStatus;
+
+    PrayerPointFractionCounter(BufferedImage img, Plugin plugin, int amount, int prayerDrainThreshold, int prayerDrainCounter, PrayerPointFractionPlugin.TickFlickStatus tickFlickStatus)
     {
         super(img, plugin, amount);
         this.prayerDrainThreshold = prayerDrainThreshold;
         this.prayerDrainCounter = prayerDrainCounter;
-        this.flagMissedPrayerFlick = flagMissedPrayerFlick;
         this.flagPrayerDrainCounterNotInitialized = true;
+        this.tickFlickStatus = tickFlickStatus;
     }
 
     @Override
@@ -72,19 +75,16 @@ class PrayerPointFractionCounter extends Counter
     @Override
     public Color getTextColor()
     {
-        if (flagMissedPrayerFlick)
+        switch (tickFlickStatus)
         {
-            return Color.RED.brighter();
+            case PRAYER_FICKED:
+                return Color.GREEN;
+            case PRAYER_DRAINED:
+                return Color.RED.brighter();
+            default:
+                return Color.WHITE;
         }
-
-        return Color.WHITE;
     }
-
-    public void setFlag(boolean flag)
-    {
-        this.flagMissedPrayerFlick = flag;
-    }
-
     public void initialize()
     {
         this.flagPrayerDrainCounterNotInitialized = false;

@@ -48,6 +48,13 @@ public class PrayerPointFractionPlugin extends Plugin
 	//TODO: Remove debug
 	static final boolean debug = false;
 
+	public enum TickFlickStatus
+	{
+		PRAYER_INACTIVE,
+		PRAYER_FICKED,
+		PRAYER_DRAINED;
+	}
+
 	@AllArgsConstructor
 	@Getter
 	enum PrayerType
@@ -97,7 +104,8 @@ public class PrayerPointFractionPlugin extends Plugin
 	private int prayerTicksCounter;
 
 	private boolean flagRecalculateTicksLeft;
-	private boolean flagMissedPrayerFlick;
+
+	private TickFlickStatus tickFlickStatus;
 
 	private boolean prayerFlickedFlag[] = new boolean[PrayerType.values().length];
 
@@ -147,9 +155,9 @@ public class PrayerPointFractionPlugin extends Plugin
 		else
 		{
 			ticksCounter.setCount(prayerTicksCounter);
-			ticksCounter.setFlag(flagMissedPrayerFlick);
+			ticksCounter.setTickFlickStatus(tickFlickStatus);
 		}
-		flagMissedPrayerFlick = false;
+		tickFlickStatus = TickFlickStatus.PRAYER_INACTIVE;
 	}
 
 	private void updateDrainCounter()
@@ -158,7 +166,7 @@ public class PrayerPointFractionPlugin extends Plugin
 		if (drainEffect > 0)
 		{
 			prayerDrainCounter += drainEffect;
-			flagMissedPrayerFlick = true;
+			tickFlickStatus = TickFlickStatus.PRAYER_DRAINED;
 		}
 
 		int prayerDrainThreshold = 60 + prayerBonus*2;
@@ -199,9 +207,16 @@ public class PrayerPointFractionPlugin extends Plugin
 
 		for (PrayerType prayerType : PrayerType.values())
 		{
-			if (client.isPrayerActive(prayerType.prayer) && !prayerFlickedFlag[prayerType.ordinal()])
+			if (client.isPrayerActive(prayerType.prayer))
 			{
-				drainEffect += prayerType.drainEffect;
+				if(prayerFlickedFlag[prayerType.ordinal()])
+				{
+					tickFlickStatus = TickFlickStatus.PRAYER_FICKED;
+				}
+				else
+				{
+					drainEffect += prayerType.drainEffect;
+				}
 			}
 			//TODO: "Get" shouldnt affect values
 			prayerFlickedFlag[prayerType.ordinal()] = false;
@@ -243,14 +258,14 @@ public class PrayerPointFractionPlugin extends Plugin
 	private void addPrayerDrainInfobox(int value)
 	{
 		BufferedImage image = skillIconManager.getSkillImage(Skill.PRAYER);
-		thresholdCounter = new PrayerPointFractionCounter(image, this, value, 60 + prayerBonus*2, prayerDrainCounter, flagMissedPrayerFlick);
+		thresholdCounter = new PrayerPointFractionCounter(image, this, value, 60 + prayerBonus*2, prayerDrainCounter, tickFlickStatus);
 		infoBoxManager.addInfoBox(thresholdCounter);
 	}
 
 	private void addPrayerTicksInfobox(int value)
 	{
 		BufferedImage image = skillIconManager.getSkillImage(Skill.PRAYER);
-		ticksCounter = new PrayerPointFractionCounter(image, this, value, 60 + prayerBonus*2, prayerDrainCounter, flagMissedPrayerFlick);
+		ticksCounter = new PrayerPointFractionCounter(image, this, value, 60 + prayerBonus*2, prayerDrainCounter, tickFlickStatus);
 		infoBoxManager.addInfoBox(ticksCounter);
 	}
 
