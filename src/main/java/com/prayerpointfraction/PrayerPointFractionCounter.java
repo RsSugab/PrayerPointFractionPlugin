@@ -33,10 +33,12 @@ import java.awt.image.BufferedImage;
 
 class PrayerPointFractionCounter extends Counter
 {
-    int prayerDrainThreshold;
-    int prayerDrainCounter;
     boolean flagPrayerDrainCounterNotInitialized;
 
+    @Setter
+    int prayerDrainThreshold;
+    @Setter
+    int prayerDrainCounter;
     @Setter
     PrayerPointFractionPlugin.TickFlickStatus tickFlickStatus;
 

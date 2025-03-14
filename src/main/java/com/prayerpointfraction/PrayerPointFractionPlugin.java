@@ -154,6 +154,8 @@ public class PrayerPointFractionPlugin extends Plugin
 		}
 		else
 		{
+			ticksCounter.setPrayerDrainThreshold(60 + prayerBonus*2);
+			ticksCounter.setPrayerDrainCounter(prayerDrainCounter);
 			ticksCounter.setCount(prayerTicksCounter);
 			ticksCounter.setTickFlickStatus(tickFlickStatus);
 		}
