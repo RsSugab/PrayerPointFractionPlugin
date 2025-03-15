@@ -46,7 +46,7 @@ public class PrayerPointFractionPlugin extends Plugin
 	private int lastPrayerDrainEffect;
 
 	//TODO: Remove debug
-	static final boolean debug = false;
+	static final boolean debug = true;
 
 	public enum TickFlickStatus
 	{
@@ -104,6 +104,7 @@ public class PrayerPointFractionPlugin extends Plugin
 	private int prayerTicksCounter;
 
 	private boolean flagRecalculateTicksLeft;
+	private boolean flagRestoredPrayer;
 
 	private TickFlickStatus tickFlickStatus;
 
@@ -143,8 +144,15 @@ public class PrayerPointFractionPlugin extends Plugin
 		updateDrainCounter();
 		if (debug)
 		{
-			removeDrainInfobox();
-			addPrayerDrainInfobox(prayerDrainCounter);
+			if (thresholdCounter == null)
+			{
+				addPrayerDrainInfobox(prayerDrainCounter);
+			}
+			else
+			{
+				thresholdCounter.setCount(prayerDrainCounter);
+				thresholdCounter.setTickFlickStatus(tickFlickStatus);
+			}
 		}
 
 		updateTicksCounter();
@@ -172,7 +180,7 @@ public class PrayerPointFractionPlugin extends Plugin
 		}
 
 		int prayerDrainThreshold = 60 + prayerBonus*2;
-		if (prayerDrainCounter >= prayerDrainThreshold)
+		if (prayerDrainCounter > prayerDrainThreshold)
 		{
 			prayerDrainCounter-=prayerDrainThreshold;
 		}
@@ -254,7 +262,10 @@ public class PrayerPointFractionPlugin extends Plugin
 	private int calculateTicksPrayerActive(int drainEffect)
 	{
 		int prayerDrainThreshold = 60 + prayerBonus*2;
-		return ((prayerDrainThreshold-prayerDrainCounter)/drainEffect) + (((prayerDrainThreshold-prayerDrainCounter) % drainEffect == 0)? 0 : 1);
+		int offset = 0;
+		//
+
+		return ((prayerDrainThreshold-prayerDrainCounter)/drainEffect) + 1;
 	}
 
 	private void addPrayerDrainInfobox(int value)
@@ -321,6 +332,11 @@ public class PrayerPointFractionPlugin extends Plugin
 			prayerDrainCounter = 0;
 			flagRecalculateTicksLeft = true;
 			ticksCounter.initialize();
+			flagRestoredPrayer = true;
+			if(debug)
+			{
+				thresholdCounter.initialize();
+			}
 		}
 	}
 
@@ -351,6 +367,11 @@ public class PrayerPointFractionPlugin extends Plugin
 						prayerDrainCounter = 0;
 						flagRecalculateTicksLeft = true;
 						ticksCounter.initialize();
+						flagRestoredPrayer = true;
+						if(debug)
+						{
+							thresholdCounter.initialize();
+						}
 					}
 				}
 			}
