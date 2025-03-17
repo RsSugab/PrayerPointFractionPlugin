@@ -18,6 +18,10 @@ import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
 
 import javax.inject.Inject;
 import java.awt.image.BufferedImage;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Set;
 
 @Slf4j
 @PluginDescriptor(
@@ -44,6 +48,8 @@ public class PrayerPointFractionPlugin extends Plugin
 	private PrayerPointFractionCounter ticksCounter;
 
 	private int lastPrayerDrainEffect;
+
+	private Queue<PrayerEventQueue> prayerEventQueue = new LinkedList<>();
 
 	//TODO: Remove debug
 	static final boolean debug = true;
@@ -104,11 +110,11 @@ public class PrayerPointFractionPlugin extends Plugin
 	private int prayerTicksCounter;
 
 	private boolean flagRecalculateTicksLeft;
-	private boolean flagRestoredPrayer;
+	private boolean flagPrayerGotForcedRemoved;
 
 	private TickFlickStatus tickFlickStatus;
 
-	private boolean prayerFlickedFlag[] = new boolean[PrayerType.values().length];
+	private TickFlickStatus prayerFlickedFlag[] = new TickFlickStatus[PrayerType.values().length];
 
 	@Override
 	protected void startUp() throws Exception
@@ -123,6 +129,7 @@ public class PrayerPointFractionPlugin extends Plugin
 	protected void shutDown() throws Exception
 	{
 		//log.info("Example stopped!");
+		//TODO: Add remove infobox
 	}
 
 	@Subscribe
@@ -146,6 +153,12 @@ public class PrayerPointFractionPlugin extends Plugin
 		{
 			String message = "Tick: " + client.getTickCount();
 			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
+			while (!prayerEventQueue.isEmpty())
+			{
+				PrayerEventQueue queueEvent = prayerEventQueue.remove();
+				message = "Queue ID: " + queueEvent.getVarbitId() + " Queue varbit: " + queueEvent.isPrayerActivated();
+				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
+			}
 
 			if (thresholdCounter == null)
 			{
@@ -217,31 +230,56 @@ public class PrayerPointFractionPlugin extends Plugin
 	private int getDrainEffect(Client client)
 	{
 		int drainEffect = 0;
+		Set<PrayerType> activatedPrayers = new HashSet<PrayerType>();
+		tickFlickStatus = TickFlickStatus.PRAYER_INACTIVE;
 
 		for (PrayerType prayerType : PrayerType.values())
 		{
 			if (client.isPrayerActive(prayerType.prayer))
 			{
-				if(prayerFlickedFlag[prayerType.ordinal()])
-				{
-					if (tickFlickStatus == TickFlickStatus.PRAYER_INACTIVE)
-					{
-						tickFlickStatus = TickFlickStatus.PRAYER_FICKED;
-					}
-				}
-				else
-				{
-					tickFlickStatus = TickFlickStatus.PRAYER_DRAINED;
-				}
-				drainEffect += prayerType.drainEffect;
+				activatedPrayers.add(prayerType);
 			}
-			//TODO: "Get" shouldnt affect values
-			prayerFlickedFlag[prayerType.ordinal()] = false;
+//			if (client.isPrayerActive(prayerType.prayer))
+//			{
+//				if(prayerFlickedFlag[prayerType.ordinal()] == TickFlickStatus.PRAYER_DRAINED)
+//				{
+//					tickFlickStatus = TickFlickStatus.PRAYER_DRAINED;
+//				}
+//				else
+//				{
+//					if (tickFlickStatus == TickFlickStatus.PRAYER_INACTIVE)
+//					{
+//						tickFlickStatus = TickFlickStatus.PRAYER_FICKED;
+//					}
+//				}
+//				// Set all active prayers to PRAYER_DRAINED for next tick calculations
+//				prayerFlickedFlag[prayerType.ordinal()] = TickFlickStatus.PRAYER_DRAINED;
+//				drainEffect += prayerType.drainEffect;
+//			}
+//			else
+//			{
+//				if (prayerFlickedFlag[prayerType.ordinal()] == TickFlickStatus.PRAYER_DRAINED)
+//				{
+//					// Prayer got forced removed (eg. switching overhead)
+//					tickFlickStatus = TickFlickStatus.PRAYER_DRAINED;
+//				}
+//				prayerFlickedFlag[prayerType.ordinal()] = TickFlickStatus.PRAYER_INACTIVE;
+//			}
 		}
+		if(debug)
+		{
+			PrayerType[] array = activatedPrayers.toArray(new PrayerType[0]);
+			for (PrayerType prayer : array)
+			{
+				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Activated prayer: " + prayer.getName() , null);
+			}
+		}
+
 		if (tickFlickStatus == TickFlickStatus.PRAYER_FICKED)
 		{
 			drainEffect = 0;
 		}
+
 		return drainEffect;
 	}
 
@@ -342,7 +380,6 @@ public class PrayerPointFractionPlugin extends Plugin
 			prayerDrainCounter = 0;
 			flagRecalculateTicksLeft = true;
 			ticksCounter.initialize();
-			flagRestoredPrayer = true;
 			if(debug)
 			{
 				thresholdCounter.initialize();
@@ -377,7 +414,6 @@ public class PrayerPointFractionPlugin extends Plugin
 						prayerDrainCounter = 0;
 						flagRecalculateTicksLeft = true;
 						ticksCounter.initialize();
-						flagRestoredPrayer = true;
 						if(debug)
 						{
 							thresholdCounter.initialize();
@@ -398,10 +434,37 @@ public class PrayerPointFractionPlugin extends Plugin
 				if (debug)
 				{
 					//TODO: Keep note if prayer was flicked
-					String message = event.getVarbitId() + ": " + event.getValue();
+					String message = prayerType.getName() + ": " + event.getValue();
 					client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
 				}
-				prayerFlickedFlag[prayerType.ordinal()] = true;
+				prayerEventQueue.add(new PrayerEventQueue(event.getVarbitId(), event.getValue()==1));
+//				// Prayer got deactivated
+//				if (event.getValue() == 0)
+//				{
+//					if (!flagPrayerGotForcedRemoved)
+//					{
+//						prayerFlickedFlag[prayerType.ordinal()] = TickFlickStatus.PRAYER_INACTIVE;
+//					}
+//					else
+//					{
+//						//TODO: Test this scenario
+//						prayerFlickedFlag[prayerType.ordinal()] = TickFlickStatus.PRAYER_DRAINED;
+//					}
+//				}
+//				else
+//				{
+//					// Prayer got activated
+//					if (!flagPrayerGotForcedRemoved)
+//					{
+//
+//					}
+//					else
+//					{
+//						//TODO: Test this scenario
+//						prayerFlickedFlag[prayerType.ordinal()] = TickFlickStatus.PRAYER_DRAINED;
+//					}
+//				}
+//				prayerFlickedFlag[prayerType.ordinal()] = true;
 			}
 		}
 
