@@ -27,4 +27,13 @@ public interface PrayerPointFractionConfig extends Config
 		return false;
 	}
 
+	@ConfigItem(
+			keyName = "setDebug",
+			name = "Set debug",
+			description = "Set debug mode."
+	)
+	default boolean setDebug() {
+		return false;
+	}
+
 }

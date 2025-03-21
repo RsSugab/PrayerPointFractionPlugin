@@ -18,10 +18,7 @@ import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
 
 import javax.inject.Inject;
 import java.awt.image.BufferedImage;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 
 @Slf4j
 @PluginDescriptor(
@@ -52,7 +49,7 @@ public class PrayerPointFractionPlugin extends Plugin
 	private Queue<PrayerEventQueue> prayerEventQueue = new LinkedList<>();
 
 	//TODO: Remove debug
-	static final boolean debug = true;
+	boolean debug = false;
 
 	public enum TickFlickStatus
 	{
@@ -110,7 +107,7 @@ public class PrayerPointFractionPlugin extends Plugin
 	private int prayerTicksCounter;
 
 	private boolean flagRecalculateTicksLeft;
-	private boolean flagPrayerGotForcedRemoved;
+	private boolean flagNoPrayerActiveLastTick;
 
 	private TickFlickStatus tickFlickStatus;
 
@@ -148,6 +145,7 @@ public class PrayerPointFractionPlugin extends Plugin
 	@Subscribe
 	public void onGameTick(GameTick tick)
 	{
+		debug = config.setDebug();;
 		updateDrainCounter();
 		if (debug)
 		{
@@ -156,7 +154,7 @@ public class PrayerPointFractionPlugin extends Plugin
 			while (!prayerEventQueue.isEmpty())
 			{
 				PrayerEventQueue queueEvent = prayerEventQueue.remove();
-				message = "Queue ID: " + queueEvent.getVarbitId() + " Queue varbit: " + queueEvent.isPrayerActivated();
+				message = "Prayer: " + queueEvent.getPrayerType().getName() + " Queue varbit: " + queueEvent.isPrayerActivated();
 				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
 			}
 
@@ -189,11 +187,15 @@ public class PrayerPointFractionPlugin extends Plugin
 	private void updateDrainCounter()
 	{
 		int drainEffect = getDrainEffect(client);
-		if (drainEffect > 0)
+		if (tickFlickStatus == TickFlickStatus.PRAYER_DRAINED)
 		{
 			prayerDrainCounter += drainEffect;
-			tickFlickStatus = TickFlickStatus.PRAYER_DRAINED;
 		}
+//		if (drainEffect > 0)
+//		{
+//			prayerDrainCounter += drainEffect;
+//			tickFlickStatus = TickFlickStatus.PRAYER_DRAINED;
+//		}
 
 		int prayerDrainThreshold = 60 + prayerBonus*2;
 		if (prayerDrainCounter > prayerDrainThreshold)
@@ -230,14 +232,15 @@ public class PrayerPointFractionPlugin extends Plugin
 	private int getDrainEffect(Client client)
 	{
 		int drainEffect = 0;
-		Set<PrayerType> activatedPrayers = new HashSet<PrayerType>();
+		Set<String> activatedPrayers = new HashSet<String>();
 		tickFlickStatus = TickFlickStatus.PRAYER_INACTIVE;
 
 		for (PrayerType prayerType : PrayerType.values())
 		{
 			if (client.isPrayerActive(prayerType.prayer))
 			{
-				activatedPrayers.add(prayerType);
+				activatedPrayers.add(prayerType.getName());
+				drainEffect += prayerType.drainEffect;
 			}
 //			if (client.isPrayerActive(prayerType.prayer))
 //			{
@@ -268,17 +271,140 @@ public class PrayerPointFractionPlugin extends Plugin
 		}
 		if(debug)
 		{
-			PrayerType[] array = activatedPrayers.toArray(new PrayerType[0]);
-			for (PrayerType prayer : array)
+			String[] array = activatedPrayers.toArray(new String[activatedPrayers.size()]);
+			for (String prayer : array)
 			{
-				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Activated prayer: " + prayer.getName() , null);
+				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Activated prayer: " + prayer, null);
 			}
 		}
 
-		if (tickFlickStatus == TickFlickStatus.PRAYER_FICKED)
+		// We keep going through events to see if we deactivated all active prayers before activating another prayer
+		// to determine if we did a prayer flick
+//		while (!prayerEventQueue.isEmpty())
+//		{
+//			PrayerEventQueue prayerEvent = prayerEventQueue.remove();
+//			if (prayerEvent.isPrayerActivated())
+//			{
+//				//Check for sequence Activate > Deactivate > Activate of the same prayer
+//				PrayerEventQueue secondPrayerEvent = prayerEventQueue.peek();
+//				if(secondPrayerEvent != null
+//						&& !secondPrayerEvent.isPrayerActivated()
+//						&& prayerEvent.getPrayerType().getName().equals(secondPrayerEvent.getPrayerType().getName()))
+//				{
+//					prayerEventQueue.remove();
+//					PrayerEventQueue thirdEvent = prayerEventQueue.peek();
+//					if(thirdEvent != null
+//							&& thirdEvent.isPrayerActivated()
+//							&& prayerEvent.getPrayerType().getName().equals(thirdEvent.getPrayerType().getName()))
+//					{
+//						prayerEventQueue.remove();
+//						activatedPrayers.remove(prayerEvent.getPrayerType());
+//					}
+//				}
+//				else
+//				{
+//					break;
+//				}
+//			}
+//			else
+//			{
+//				activatedPrayers.remove(prayerEvent.getPrayerType());
+//
+//				// Sequence can also be Deactivated > Activated
+//				PrayerEventQueue secondPrayerEvent = prayerEventQueue.peek();
+//				if(secondPrayerEvent != null
+//						&& !secondPrayerEvent.isPrayerActivated()
+//						&& prayerEvent.getPrayerType().getName().equals(secondPrayerEvent.getPrayerType().getName()))
+//				{
+//					prayerEventQueue.remove();
+//				}
+//			}
+//
+//		}
+		tickFlickStatus = TickFlickStatus.PRAYER_DRAINED;
+		// TODO: Idea: Start with prayer active set, add and remove from set according to queue, check if set is  ever empty
+		if (flagNoPrayerActiveLastTick && !activatedPrayers.isEmpty())
 		{
-			drainEffect = 0;
+			tickFlickStatus = TickFlickStatus.PRAYER_FICKED;
 		}
+
+
+		if (activatedPrayers.isEmpty())
+		{
+			tickFlickStatus = TickFlickStatus.PRAYER_FICKED;
+			flagNoPrayerActiveLastTick = true;
+		}
+		else
+		{
+			flagNoPrayerActiveLastTick = false;
+		}
+		while (!prayerEventQueue.isEmpty())
+		{
+			PrayerEventQueue prayerEvent = prayerEventQueue.remove();
+			if (prayerEvent.isPrayerActivated())
+			{
+				boolean ret = activatedPrayers.add(prayerEvent.getPrayerType().getName());
+				if (debug)
+					client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Added " + ret + " " + prayerEvent.getPrayerType().getName() , null);
+			}
+			else
+			{
+				boolean ret = activatedPrayers.remove(prayerEvent.getPrayerType().getName());
+				if (debug)
+					client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "Removed " + ret + " " + prayerEvent.getPrayerType().getName() , null);
+			}
+			if(debug)
+			{
+				String[] array = activatedPrayers.toArray(new String[activatedPrayers.size()]);
+				String message = "Queue: ";
+				for (String prayer : array)
+				{
+					message += prayer + " ";
+				}
+				client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
+			}
+			if (activatedPrayers.isEmpty())
+			{
+				tickFlickStatus = TickFlickStatus.PRAYER_FICKED;
+			}
+
+		}
+
+		if (drainEffect == 0)
+		{
+			tickFlickStatus = TickFlickStatus.PRAYER_INACTIVE;
+		}
+//		else if (activatedPrayers.isEmpty() || flagNoPrayerActiveLastTick)
+//		{
+//			tickFlickStatus = TickFlickStatus.PRAYER_FICKED;
+//			drainEffect = 0;
+//			flagNoPrayerActiveLastTick = false;
+//		}
+//		else
+//		{
+//			tickFlickStatus = TickFlickStatus.PRAYER_DRAINED;
+//		}
+		if (debug)
+		{
+			String message;
+			if (tickFlickStatus == TickFlickStatus.PRAYER_DRAINED)
+				message = "DRAINED";
+			else if (tickFlickStatus == TickFlickStatus.PRAYER_INACTIVE)
+				message = "inactive";
+			else
+				message = "Flicked";
+			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "***Prayer was: " + message, null);
+		}
+
+//		if (tickFlickStatus == TickFlickStatus.PRAYER_FICKED)
+//		{
+//			drainEffect = 0;
+//		}
+
+//		while (!prayerEventQueue.isEmpty())
+//		{
+//			prayerEventQueue.remove();
+//		}
 
 		return drainEffect;
 	}
@@ -437,7 +563,7 @@ public class PrayerPointFractionPlugin extends Plugin
 					String message = prayerType.getName() + ": " + event.getValue();
 					client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
 				}
-				prayerEventQueue.add(new PrayerEventQueue(event.getVarbitId(), event.getValue()==1));
+				prayerEventQueue.add(new PrayerEventQueue(prayerType, event.getValue()==1));
 //				// Prayer got deactivated
 //				if (event.getValue() == 0)
 //				{

@@ -9,15 +9,15 @@ public class PrayerEventQueue
 {
     @Getter
     @Setter
-    private int varbitId;
+    private PrayerPointFractionPlugin.PrayerType prayerType;
 
     @Getter
     @Setter
     private boolean isPrayerActivated;
 
-    PrayerEventQueue(int varbitId, boolean isPrayerActivated)
+    PrayerEventQueue(PrayerPointFractionPlugin.PrayerType prayerType, boolean isPrayerActivated)
     {
-        this.varbitId = varbitId;
+        this.prayerType = prayerType;
         this.isPrayerActivated = isPrayerActivated;
     }
 }
